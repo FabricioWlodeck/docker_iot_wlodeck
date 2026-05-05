@@ -1,11 +1,5 @@
 import asyncio, ssl, certifi, logging, os
 import aiomqtt
-#from dotenv import load_dotenv
-
-#load_dotenv()
-
-# lo que recive por consola al ejecutar docker seria algo asi:
-# ... docker run -e SERVIDOR="fiounam.duckdns.org" -e TOPICO_1="/temperatura" -e TOPICO_2="/humedad" -e TOPICO_3="/contador" --rm --name cliente_mqtt clientemqtt 
 
 logging.basicConfig(
     format='%(asctime)s - [%(taskName)s] - %(levelname)s: %(message)s', 
@@ -71,14 +65,9 @@ async def main():
             else:
                 asyncio.create_task(corrutina_topico_3(message))
                 
-
-
-
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logging.info("Aplicacion detenida por [Ctrl+C]")
         logging.info("Buen intento 🚀✅")
-        
-        
