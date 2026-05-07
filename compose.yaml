@@ -10,8 +10,9 @@ services:
     volumes:
       - ./mariadb:/var/lib/mysql:Z
     ports:
-      - 3306:3306
+      - 3306:3306 #enruta el puerto 8080 de mi red a el puerto 3306 del docker, es el mismo numero.
     restart: unless-stopped
+
   phpmyadmin:
     image: phpmyadmin
     container_name: phpmyadmin
@@ -19,6 +20,6 @@ services:
     environment:
       - PMA_HOST=mariadb
     ports:
-      - 8080:80
+      - 8080:80 #enruta el puerto 8080 de mi red a el puerto 80 del docker
     depends_on:
       - mariadb
