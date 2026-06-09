@@ -1,3 +1,7 @@
 python-telegram-bot
 aiomysql
 matplotlib
+
+aiomqtt
+certifi
+environs

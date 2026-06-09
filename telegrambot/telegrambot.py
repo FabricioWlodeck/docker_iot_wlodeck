@@ -4,14 +4,15 @@ import logging, os, asyncio, aiomysql, traceback, locale
 import matplotlib.pyplot as plt
 from io import BytesIO
 
+# token del bot
 token=os.environ["TB_TOKEN"]
 
-
-
-
-
+# ver logs
 logging.basicConfig(format='%(asctime)s - TelegramBot - %(levelname)s - %(message)s', level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("se conectó: " + str(update.message.from_user.id))
