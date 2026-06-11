@@ -4,8 +4,9 @@ import ssl
 import certifi
 import aiomqtt
 
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+
 import logging, os, asyncio, aiomysql, traceback, locale
 import matplotlib.pyplot as plt
 from io import BytesIO
@@ -18,6 +19,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 # token del bot
 TOKEN=os.environ["TB_TOKEN"]
 MQTT_BROKER = os.environ.get("SERVIDOR", None) 
+MQTT_PORT = 8883  # Puerto Mqtts seguro con TLS o SSL
 MQTT_USER = os.environ.get("MQTT_USER", None)
 MQTT_PASS = os.environ.get("MQTT_PASS", None)
 MAC_PICO = os.environ.get("DEVICE_MAC", "AA:BB:CC:DD:EE:FF") # La MAC de la PICO 2W
@@ -36,39 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(texto, parse_mode='Markdown')
 
-async def acercade(update: Update, context):
-    await context.bot.send_message(update.message.chat.id, text="Este bot fue creado para el curso de IoT FIO")
 
-async def kill(update: Update, context):
-    logging.info(context.args)
-    if context.args and context.args[0] == '@e':
-        await context.bot.send_animation(update.message.chat.id, "CgACAgEAAxkBAAICI2oYKdAqh4YkBCLifiVJZlRXy74-AAKUBwACZ_PBRLgV_qZf-9kGOwQ")
-        await asyncio.sleep(6)
-        await context.bot.send_message(update.message.chat.id, text="¡¡¡Ahora estan todos muertos!!!")
-    else:
-        await context.bot.send_message(update.message.chat.id, text="☠️ ¡¡¡Esto es muy peligroso!!! ☠️")
-        
-async def medicion(update: Update, context):
-    logging.info(update.message.text)
-    sql = f"SELECT timestamp, {update.message.text} FROM mediciones ORDER BY timestamp DESC LIMIT 1"
-    conn = await aiomysql.connect(host=os.environ["MARIADB_SERVER"], port=3306,
-                                    user=os.environ["MARIADB_USER"],
-                                    password=os.environ["MARIADB_USER_PASS"],
-                                    db=os.environ["MARIADB_DB"])
-    async with conn.cursor() as cur:
-        await cur.execute(sql)
-        r = await cur.fetchone()
-        if update.message.text == 'temperatura':
-            unidad = 'ºC'
-        else:
-            unidad = '%'
-        await context.bot.send_message(update.message.chat.id,
-                                    text="La última {} es de {} {},\nregistrada a las {:%H:%M:%S %d/%m/%Y}"
-                                    .format(update.message.text, str(r[1]).replace('.',','), unidad, r[0]))
-        logging.info("La última {} es de {} {}, medida a las {:%H:%M:%S %d/%m/%Y}".format(update.message.text, r[1], unidad, r[0]))
-    conn.close()
-
-async def graficos(update: Update, context):
     logging.info(update.message.text)
     sql = f"""SELECT timestamp, {update.message.text.split()[1]}
             FROM (
@@ -105,15 +75,37 @@ async def graficos(update: Update, context):
         buffer.close()
     conn.close()
 
+async def publicar_mqtt(topico_final: str, mensaje: str):
+    topico = f"{MAC_PICO}/{topico_final}"
+    
+    # Configuración TLS (seguridad)
+    contexto_ssl = ssl.create_default_context(cafile=certifi.where())
+    contexto_ssl.check_hostname = False
+    contexto_ssl.verify_mode = ssl.CERT_NONE
+
+    try:
+        async with aiomqtt.Client(
+            hostname=MQTT_BROKER,
+            port=MQTT_PORT,
+            username=MQTT_USER,
+            password=MQTT_PASS,
+            tls_context=contexto_ssl
+        ) as cliente:
+            await cliente.publish(topico, payload=mensaje, qos=1)
+            logging.info(f"MQTT -> Publicado en {topico}: {mensaje}")
+            return True
+    except Exception as e:
+        logging.error(f"Error MQTT: {e}")
+        return False
+
+
+
 def main():
     
     
-    application = Application.builder().token(token).build()
+    application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('acercade', acercade))
-    application.add_handler(CommandHandler('kill', kill))
-    application.add_handler(MessageHandler(filters.Regex("^(temperatura|humedad)$"), medicion))
-    application.add_handler(MessageHandler(filters.Regex("^(gráfico temperatura|gráfico humedad)$"), graficos))
+    
     
     application.run_polling()
 
