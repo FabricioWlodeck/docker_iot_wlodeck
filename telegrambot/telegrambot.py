@@ -1,31 +1,40 @@
+import os
+import logging
+import ssl
+import certifi
+import aiomqtt
+
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 import logging, os, asyncio, aiomysql, traceback, locale
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-# token del bot
-token=os.environ["TB_TOKEN"]
-
 # ver logs
 logging.basicConfig(format='%(asctime)s - TelegramBot - %(levelname)s - %(message)s', level=logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
+# token del bot
+TOKEN=os.environ["TB_TOKEN"]
+MQTT_BROKER = os.environ.get("SERVIDOR", None) 
+MQTT_USER = os.environ.get("MQTT_USER", None)
+MQTT_PASS = os.environ.get("MQTT_PASS", None)
+MAC_PICO = os.environ.get("DEVICE_MAC", "AA:BB:CC:DD:EE:FF") # La MAC de la PICO 2W
+
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logging.info("se conectó: " + str(update.message.from_user.id))
-    if update.message.from_user.first_name:
-        nombre=update.message.from_user.first_name
-    else:
-        nombre=""
-    if update.message.from_user.last_name:
-        apellido=update.message.from_user.last_name
-    else:
-        apellido=""
-    kb = [["temperatura"],["humedad"],["gráfico temperatura"],["gráfico humedad"]]
-    await context.bot.send_message(update.message.chat.id, text="Bienvenido al Bot "+ nombre + " " + apellido,reply_markup=ReplyKeyboardMarkup(kb))
+    texto = (
+        "*Panel de Control del Termostato* \n\n"
+        "Comandos disponibles:\n"
+        "/setpoint <número>` - Fija la temperatura objetivo\n"
+        "`/periodo <segundos>` - Tiempo entre lecturas\n"
+        "`/modo` - Alterna entre Auto/Manual (Menú)\n"
+        "`/rele` - Control manual del relé (Menú)\n"
+        "`/destello` - Identificar dispositivo"
+    )
+    await update.message.reply_text(texto, parse_mode='Markdown')
 
 async def acercade(update: Update, context):
     await context.bot.send_message(update.message.chat.id, text="Este bot fue creado para el curso de IoT FIO")
