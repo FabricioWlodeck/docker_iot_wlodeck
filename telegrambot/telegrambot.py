@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 # token del bot
 TOKEN=os.environ["TB_TOKEN"]
 MQTT_BROKER = os.environ.get("MQTT_USR", "mosquitto") 
-MQTT_PORT = 8883 # os.environ.get("PUERTO_MQTTS", None)   # Puerto Mqtts seguro con TLS o SSL
+MQTT_PORT = 8883 
 MQTT_USER = os.environ.get("MQTT_USR", None)
 MQTT_PASS = os.environ.get("MQTT_PASS", None)
 
