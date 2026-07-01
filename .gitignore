@@ -1,0 +1,12 @@
+/*
+!.gitignore
+!/crud
+/crud/*
+!/crud/templates
+/crud/templates/*
+!/crud/templates/layout.html
+!/crud/static
+/crud/static/*
+!/crud/static/js
+/crud/static/js/*
+!/crud/static/js/main.js
