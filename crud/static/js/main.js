@@ -15,8 +15,4 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('tema', siguiente);
     actualizar_icono(siguiente);
   });
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 28a46491eb7eac5a4ef7a510ad2347807f9857ca
