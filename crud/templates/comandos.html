@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block body %}
+<h2>Enviar Comandos a Nodos IoT</h2>
+
+<form action="{{ url_for('enviar_comando') }}" method="POST">
+  <div class="mb-3">
+    <label class="form-label">Nodo destinatario:</label>
+    {% for nodo in nodos %}
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="sensor_id"
+             id="nodo{{nodo[0]}}" value="{{nodo[0]}}" {% if loop.first %}checked{% endif %}>
+      <label class="form-check-label" for="nodo{{nodo[0]}}">{{nodo[1]}}</label>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Comando:</label>
+    <select name="comando" class="form-select" required>
+      <option value="destello">Destello LED</option>
+      <option value="setpoint">Setpoint Temperatura</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Valor:</label>
+    <input type="text" name="valor" class="form-control"
+           placeholder="on/off (destello) o temperatura (setpoint)" required>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Enviar</button>
+</form>
+{% endblock %}

@@ -4,6 +4,9 @@ import os, logging
 from functools import wraps
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
+import paho.mqtt.publish as publish
+import ssl
+import certifi
 
 logging.basicConfig(format='%(asctime)s - CRUD - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -31,6 +34,27 @@ def require_login(f):
         g.usuario=session.get("user_id")
         return f(*args, **kwargs)
     return decorated_function
+
+def publicar_comando(topico, payload):
+    puerto = int(os.environ["PUERTO_MQTTS"])
+    if puerto == 1883:
+        publish.single(
+            topic=topico,
+            payload=payload,
+            hostname=os.environ["SERVIDOR"],
+            port=puerto,
+        )
+    else:
+        publish.single(
+            topic=topico,
+            payload=payload,
+            hostname=os.environ["SERVIDOR"],
+            port=puerto,
+            auth={"username": os.environ["MQTT_USR"],
+                  "password": os.environ["MQTT_PASS"]},
+            tls={"ca_certs": certifi.where(),
+                 "tls_version": ssl.PROTOCOL_TLS_CLIENT},
+        )
 
 @app.route("/registrar", methods=["GET", "POST"])
 def registrar():
@@ -145,3 +169,46 @@ def logout():
     session.clear()
     logging.info("el usuario {} cerró su sesión".format(g.usuario))
     return redirect(url_for('index'))
+
+@app.route('/comandos')
+@require_login
+def comandos():
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT sensor_id, nombre FROM sensores_remotos.nodos')
+    nodos = cur.fetchall()
+    cur.close()
+    return render_template('comandos.html', nodos=nodos)
+
+@app.route('/comandos/enviar', methods=['POST'])
+@require_login
+def enviar_comando():
+    sensor_id = request.form['sensor_id']
+    comando = request.form['comando']
+    valor = request.form['valor']
+
+    if comando == 'setpoint':
+        if not valor.isdigit():
+            flash('Setpoint debe ser un número entero')
+            return redirect(url_for('comandos'))
+
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT topico FROM sensores_remotos.nodos WHERE sensor_id = %s', (sensor_id,))
+    resultado = cur.fetchone()
+    cur.close()
+
+    if not resultado:
+        flash('Nodo no encontrado')
+        return redirect(url_for('comandos'))
+
+    topico = resultado[0]
+    payload = f"{comando}:{valor}"
+
+    try:
+        publicar_comando(topico, payload)
+        flash(f'Comando enviado: {payload}')
+        logging.info(f"Comando enviado a {sensor_id}: {payload}")
+    except Exception as e:
+        flash(f'Error al enviar: {e}')
+        logging.error(f"Error al enviar comando: {e}")
+
+    return redirect(url_for('comandos'))
